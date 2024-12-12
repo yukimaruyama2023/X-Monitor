@@ -6,6 +6,7 @@
 #include <netinet/in.h> // needed for "IPPROTO_UDP"
  
 #define ETH_ALEN 6
+#define METRICS_SIZE 64
 #define PORT_NUM 22222
 
 static __always_inline void swap_src_dst_mac(struct ethhdr *eth)
@@ -32,7 +33,7 @@ static __always_inline void swap_port(struct udphdr *udp)
 }
 
 SEC("monitoring")
-int udp(struct xdp_md *ctx)
+int monitor(struct xdp_md *ctx)
 {
     void *data_end = (void *)(long)ctx->data_end; 
     void *data = (void *)(long)ctx->data; 
@@ -41,25 +42,27 @@ int udp(struct xdp_md *ctx)
     struct udphdr *udp = data + sizeof(struct ethhdr) + sizeof(struct iphdr);
     char *payload = data + sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr);
 
-    long all_cpu_metrics[10] = {0,0,0,0,0,0,0,0,0,0};
-    bpf_get_all_cpu_metrics(all_cpu_metrics);
-
     // check if the packet is for monitoring
     if ((void *)(eth + 1) > data_end) return XDP_PASS;
-    /* if (eth->h_proto != ETH_P_IP) return XDP_PASS; */
+    // if (eth->h_proto != ETH_P_IP) return XDP_PASS;
     if ((void *)(ip + 1) > data_end) return XDP_PASS;
     if (ip->protocol != IPPROTO_UDP) return XDP_PASS;
     if ((void *)(udp + 1) > data_end) return XDP_PASS;
     if (udp->dest != htons(PORT_NUM)) return XDP_PASS;
 
-    long tmp = 0;
-    long *ptr_user_metrics = &tmp;
-    bpf_get_user_metrics_va(ptr_user_metrics); 
+    char *buffer;
+    char a[METRICS_SIZE];
+    for (int i = 0; i < METRICS_SIZE; i++) {
+      a[i] = 'a';
+    }
+    buffer = a;
+    bpf_get_application_metrics(11211, buffer); 
 
     // load metrics to the packet
-    if ((void *)payload + sizeof(long) > data_end) return XDP_PASS;
-    *(long *)payload = *ptr_user_metrics;
-    payload += sizeof(long);
+    if ((void *)payload + METRICS_SIZE > data_end) return XDP_PASS;
+    *(long *)payload = *buffer;
+    __builtin_memcpy((void *)payload, buffer, METRICS_SIZE);
+    payload += METRICS_SIZE;
 
     swap_src_dst_mac(eth);
     swap_src_dst_ip(ip);
