@@ -50,13 +50,19 @@ int monitor(struct xdp_md *ctx)
     if ((void *)(udp + 1) > data_end) return XDP_PASS;
     if (udp->dest != htons(PORT_NUM)) return XDP_PASS;
 
-    char *buffer;
-    char a[METRICS_SIZE];
+    // char *buffer;
+    // char a[METRICS_SIZE];
+    // for (int i = 0; i < METRICS_SIZE; i++) {
+    //   a[i] = 'a';
+    // }
+    // buffer = a;
+     
+    char buffer[METRICS_SIZE];
     for (int i = 0; i < METRICS_SIZE; i++) {
-      a[i] = 'a';
+      buffer[i] = 'a'; 
     }
-    buffer = a;
-    bpf_get_application_metrics(11211, buffer); 
+    
+    if (bpf_get_application_metrics(11211, buffer, METRICS_SIZE) < 0) return XDP_ABORTED;
 
     // load metrics to the packet
     if ((void *)payload + METRICS_SIZE > data_end) return XDP_PASS;
