@@ -6,8 +6,9 @@
 #include <netinet/in.h> // needed for "IPPROTO_UDP"
  
 #define ETH_ALEN 6
-#define METRICS_SIZE 224
+#define METRICS_SIZE 70
 #define PORT_NUM 22222
+#define NUM_APP 3
 
 static __always_inline void swap_src_dst_mac(struct ethhdr *eth)
 {
@@ -50,27 +51,31 @@ int monitor(struct xdp_md *ctx)
     if ((void *)(udp + 1) > data_end) return XDP_PASS;
     if (udp->dest != htons(PORT_NUM)) return XDP_PASS;
 
-     
-    char buffer1[METRICS_SIZE];
-    char buffer2[METRICS_SIZE];
-    for (int i = 0; i < METRICS_SIZE; i++) {
-      buffer1[i] = 'a'; 
-      buffer2[i] = 'a'; 
+    char buffer[NUM_APP][METRICS_SIZE];
+
+    for (int i = 0; i < NUM_APP; i++) {
+        for (int j = 0; j < METRICS_SIZE; j++) {
+            buffer[i][j] = 'a';
+        }
     }
-    
-    if (bpf_get_application_metrics(11211, buffer1, METRICS_SIZE) < 0) return XDP_ABORTED;
-    if (bpf_get_application_metrics(11212, buffer2, METRICS_SIZE) < 0) return XDP_ABORTED;
 
-    // load metrics to the packet
-    if ((void *)payload + METRICS_SIZE > data_end) return XDP_PASS;
-    *(long *)payload = *buffer1;
-    __builtin_memcpy((void *)payload, buffer1, METRICS_SIZE);
-    payload += METRICS_SIZE;
+    int port_array[3] = {11211, 11212, 11213};
 
-    if ((void *)payload + METRICS_SIZE > data_end) return XDP_PASS;
-    *(long *)payload = *buffer2;
-    __builtin_memcpy((void *)payload, buffer2, METRICS_SIZE);
-    payload += METRICS_SIZE;
+    for (int i = 0; i < NUM_APP; i++) {
+        if (bpf_get_application_metrics(port_array[i], &buffer[i][0], METRICS_SIZE) < 0) {
+            return XDP_ABORTED;
+        }
+    }
+
+    for (int i = 0; i < NUM_APP; i++) {
+        if ((void *)(payload + METRICS_SIZE) > data_end) {
+            return XDP_PASS;
+        }
+
+        __builtin_memcpy(payload, &buffer[i][0], METRICS_SIZE);
+        payload += METRICS_SIZE;
+    }
+
 
     swap_src_dst_mac(eth);
     swap_src_dst_ip(ip);
