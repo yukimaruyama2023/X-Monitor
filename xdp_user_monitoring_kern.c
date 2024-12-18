@@ -6,9 +6,12 @@
 #include <netinet/in.h> // needed for "IPPROTO_UDP"
  
 #define ETH_ALEN 6
-#define METRICS_SIZE 70
+#define METRICS_SIZE 310 
 #define PORT_NUM 22222
-#define NUM_APP 3
+#define NUM_APP 3 
+#define __BPF_STACK_LIMIT__ 4096
+#define MAX_BPF_STACK 4096
+
 
 static __always_inline void swap_src_dst_mac(struct ethhdr *eth)
 {
@@ -75,7 +78,6 @@ int monitor(struct xdp_md *ctx)
         __builtin_memcpy(payload, &buffer[i][0], METRICS_SIZE);
         payload += METRICS_SIZE;
     }
-
 
     swap_src_dst_mac(eth);
     swap_src_dst_ip(ip);
