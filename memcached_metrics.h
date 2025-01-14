@@ -13,7 +13,7 @@ typedef _Bool bool;
 
 #define EXTSTORE
 #define SOCK_COOKIE_ID
-#define __SIZEOF_PTHREAD_MUTEX_T 40
+#define SIZEOF_PTHREAD_MUTEX_T 40
 #define MAX_NUMBER_OF_SLAB_CLASSES (63 + 1)
 #define POWER_LARGEST  256 /* actual cap is 255 */
 typedef unsigned int rel_time_t;
@@ -298,7 +298,7 @@ struct __pthread_mutex_m
 typedef union
 {
   struct __pthread_mutex_m __data;
-  char __size[__SIZEOF_PTHREAD_MUTEX_T];
+  char __size[SIZEOF_PTHREAD_MUTEX_T];
   long int __align;
 } pthread_mutex_m;
 
