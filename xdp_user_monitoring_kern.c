@@ -9,9 +9,9 @@
 #include "memcached_metrics.h"
 
 #define ETH_ALEN 6
-#define METRICS_SIZE 1025
+#define METRICS_SIZE 740
 #define PORT_NUM 22222
-#define NUM_APP 1
+#define NUM_APP 3
 #define __BPF_STACK_LIMIT__ 4096
 #define MAX_BPF_STACK 4096
 
@@ -65,14 +65,14 @@ int monitor(struct xdp_md *ctx) {
   char buffer[NUM_APP][METRICS_SIZE];
   char *buffer_p = (char *)buffer;
   // char *buffer_p2 = (char *)(buffer + 1024);
-  __builtin_memset(buffer_p, 'a', 1 * 1024); // initialize double array with 'a'
+  __builtin_memset(buffer_p, 'a', 1024); // initialize double array with 'a'
   // __builtin_memset(buffer_p2, 'a', 1 * 1024); // initialize double array with
   // 'a'
 
-  // int port_array[13] = {11211, 11212, 11213, 11214,11215,11216,11217,
-  //   11218,11219,11220,11221,11222,11223};
+  int port_array[13] = {11211, 11212, 11213, 11214, 11215, 11216, 11217,
+                        11218, 11219, 11220, 11221, 11222, 11223};
 
-  int port_array[3] = {11211, 11212, 11213};
+  // int port_array[3] = {11211, 11212, 11213};
   for (int i = 0; i < NUM_APP; i++) {
     if (bpf_get_application_metrics(port_array[i], &buffer[i][0],
                                     METRICS_SIZE) < 0) {
@@ -91,17 +91,35 @@ int monitor(struct xdp_md *ctx) {
   struct stats *stats = (struct stats *)buffer[0];
   struct stats_state *stats_state =
       (struct stats_state *)(buffer[0] + sizeof(struct stats));
+  struct settings *settings =
+      (struct settings *)(buffer[0] + sizeof(struct stats) +
+                          sizeof(struct stats_state));
+
+  struct stats *stats_2 = (struct stats *)buffer[1];
 
   if ((void *)(payload + sizeof(stats->total_items)) > data_end) {
     return XDP_PASS;
   }
   *(uint64_t *)payload = (uint64_t)stats->total_items;
   payload += sizeof(stats->total_items);
-  if ((void *)(payload + sizeof(stats_state->curr_items)) > data_end) {
+
+  if ((void *)(payload + sizeof(stats_state->hash_bytes)) > data_end) {
     return XDP_PASS;
   }
-  *(uint64_t *)payload = (uint64_t)stats_state->curr_items;
-  payload += sizeof(stats_state->curr_items);
+  *(uint64_t *)payload = (uint64_t)stats_state->hash_bytes;
+  payload += sizeof(stats_state->hash_bytes);
+
+  // if ((void *)(payload + sizeof(settings->port)) > data_end) {
+  //   return XDP_PASS;
+  // }
+  // *(uint64_t *)payload = (uint64_t)settings->port;
+  // payload += sizeof(settings->port);
+
+  //if ((void *)(payload + sizeof(stats_2->total_items)) > data_end) {
+  //  return XDP_PASS;
+  //}
+  //*(uint64_t *)payload = (uint64_t)stats_2->total_items;
+  //payload += sizeof(stats_2->total_items);
 
   // __builtin_memset(buffer_p2, 'a', 1 * 1024); // initialize double array with
   // 'a'
