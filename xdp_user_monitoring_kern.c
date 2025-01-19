@@ -69,10 +69,6 @@ int monitor(struct xdp_md *ctx) {
   if (udp->dest != htons(PORT_NUM))
     return XDP_PASS;
 
-  // char buffer[NUM_APP][METRICS_SIZE];
-  // char *buffer_p = (char *)buffer;
-  // __builtin_memset(buffer_p, 'a', 1024); // initialize double array with 'a'
-
   int port_array[13] = {11211, 11212, 11213, 11214, 11215, 11216, 11217,
                         11218, 11219, 11220, 11221, 11222, 11223};
 
@@ -107,9 +103,9 @@ int monitor(struct xdp_md *ctx) {
   for (int i = 0; i <  sizeof(buf_rusage); i++) {
     buf_rusage[i] = 'd';
   }
-  // for (int i = 0; i <  sizeof(buf_thread_stats); i++) {
-  //   buf_thread_stats[i] = 'd';
-  // }
+  for (int i = 0; i <  sizeof(buf_thread_stats); i++) {
+    buf_thread_stats[i] = 'd';
+  }
   for (int i = 0; i <  sizeof(buf_slab_stats); i++) {
     buf_slab_stats[i] = 'e';
   }
@@ -152,17 +148,17 @@ int monitor(struct xdp_md *ctx) {
   // __builtin_memcpy(payload, buf_settings, sizeof(buf_settings));
   // payload += sizeof(buf_settings);
   
-  // if ((void*)payload + sizeof(buf_rusage) > data_end) {
-  //   return XDP_PASS;
-  // }
-  // __builtin_memcpy(payload, buf_rusage, sizeof(buf_rusage));
-  // payload += sizeof(buf_rusage);
+  if ((void*)payload + sizeof(buf_rusage) > data_end) {
+    return XDP_PASS;
+  }
+  __builtin_memcpy(payload, buf_rusage, sizeof(buf_rusage));
+  payload += sizeof(buf_rusage);
   
-  // if ((void*)payload + sizeof(buf_thread_stats) > data_end) {
-  //   return XDP_PASS;
-  // }
-  // __builtin_memcpy(payload, buf_thread_stats, sizeof(buf_thread_stats));
-  // payload += sizeof(buf_thread_stats);
+  if ((void*)payload + sizeof(buf_thread_stats) > data_end) {
+    return XDP_PASS;
+  }
+  __builtin_memcpy(payload, buf_thread_stats, sizeof(buf_thread_stats));
+  payload += sizeof(buf_thread_stats);
   
   if ((void*)payload + sizeof(buf_slab_stats) > data_end) {
     return XDP_PASS;

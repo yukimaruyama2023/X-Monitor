@@ -426,7 +426,6 @@ struct rusage {
 struct thread_stats {
 #define X(name) uint64_t name;
   THREAD_STATS_FIELDS                   //*
-      uint64_t lru_hits[POWER_LARGEST]; //*
   uint64_t read_buf_count;              //*
   uint64_t read_buf_bytes;              //*
   uint64_t read_buf_bytes_free;         //*
