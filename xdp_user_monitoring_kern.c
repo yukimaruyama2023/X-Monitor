@@ -11,7 +11,7 @@
 #define ETH_ALEN 6
 // #define METRICS_SIZE 740
 #define PORT_NUM 22222
-#define NUM_APP 3
+#define NUM_APP 2
 // #define __BPF_STACK_LIMIT__ 4096
 // #define MAX_BPF_STACK 4096
 
@@ -69,26 +69,25 @@ int monitor(struct xdp_md *ctx) {
   if (udp->dest != htons(PORT_NUM))
     return XDP_PASS;
 
-  int port_array[13] = {11211, 11212, 11213, 11214, 11215, 11216, 11217,
-                        11218, 11219, 11220, 11221, 11222, 11223};
+  int port_array[10] = {11211, 11212, 11213, 11214, 11215,
+                        11216, 11217, 11218, 11219, 11220};
 
-  struct stats stats;
-  struct stats_state stats_state;
-  struct settings settings;
-  struct rusage rusage;
-  struct thread_stats thread_stats;
-  struct slab_stats slab_stats;
-  itemstats_t totals;
+  struct stats stats[NUM_APP];
+  struct stats_state stats_state[NUM_APP];
+  struct settings settings[NUM_APP];
+  struct rusage rusage[NUM_APP];
+  struct thread_stats thread_stats[NUM_APP];
+  struct slab_stats slab_stats[NUM_APP];
+  itemstats_t totals[NUM_APP];
 
-  char buf_stats[sizeof(stats)];
-  char buf_stats_state[sizeof(stats_state)];
-  char buf_settings[sizeof(settings)];
-  char buf_rusage[sizeof(rusage)];
-  char buf_thread_stats[sizeof(thread_stats)];
-  char buf_slab_stats[sizeof(slab_stats)];
-  char buf_totals[sizeof(totals)];
+  char buf_stats[NUM_APP][sizeof(stats)];
+  char buf_stats_state[NUM_APP][sizeof(stats_state)];
+  char buf_settings[NUM_APP][sizeof(settings)];
+  char buf_rusage[NUM_APP][sizeof(rusage)];
+  char buf_thread_stats[NUM_APP][sizeof(thread_stats)];
+  char buf_slab_stats[NUM_APP][sizeof(slab_stats)];
+  char buf_totals[NUM_APP][sizeof(totals)];
 
-  bpf_store42();
   __builtin_memset(buf_stats, 'a', sizeof(buf_stats));
   __builtin_memset(buf_stats_state, 'b', sizeof(buf_stats_state));
   __builtin_memset(buf_settings, 'c', sizeof(buf_settings));
@@ -97,63 +96,76 @@ int monitor(struct xdp_md *ctx) {
   __builtin_memset(buf_slab_stats, 'e', sizeof(buf_slab_stats));
   __builtin_memset(buf_totals, 'f', sizeof(buf_totals));
 
-  bpf_get_application_metrics(port_array[0], STATS_OFFSET, sizeof(stats),
-                              buf_stats);
-  bpf_get_application_metrics(port_array[0], STATS_STATE_OFFSET,
-                              sizeof(stats_state), buf_stats_state);
-  bpf_get_application_metrics(port_array[0], SETTINGS_OFFSET, sizeof(settings),
-                              buf_settings);
-  bpf_get_application_metrics(port_array[0], RUSAGE_OFFSET, sizeof(rusage),
-                              buf_rusage);
-  bpf_get_application_metrics(port_array[0], THREAD_STATS_OFFSET,
-                              sizeof(thread_stats), buf_thread_stats);
-  bpf_get_application_metrics(port_array[0], SLAB_STATS_OFFSET,
-                              sizeof(slab_stats), buf_slab_stats);
-  bpf_get_application_metrics(port_array[0], TOTALS_OFFSET, sizeof(totals),
-                              buf_totals);
-  bpf_trace_printk(fmt, sizeof(fmt), sizeof(stats), sizeof(buf_stats));
-
-  if ((void *)payload + sizeof(buf_stats) > data_end) {
-    return XDP_PASS;
+  for (int i = 0; i < NUM_APP; i++) {
+    bpf_get_application_metrics(port_array[i], STATS_OFFSET, sizeof(stats),
+                                buf_stats[i]);
+    bpf_get_application_metrics(port_array[i], STATS_STATE_OFFSET,
+                                sizeof(stats_state), buf_stats_state[i]);
+    bpf_get_application_metrics(port_array[i], SETTINGS_OFFSET,
+                                sizeof(settings), buf_settings[i]);
+    bpf_get_application_metrics(port_array[i], RUSAGE_OFFSET, sizeof(rusage),
+                                buf_rusage[i]);
+    bpf_get_application_metrics(port_array[i], THREAD_STATS_OFFSET,
+                                sizeof(thread_stats), buf_thread_stats[i]);
+    bpf_get_application_metrics(port_array[i], SLAB_STATS_OFFSET,
+                                sizeof(slab_stats), buf_slab_stats[i]);
+    bpf_get_application_metrics(port_array[i], TOTALS_OFFSET, sizeof(totals),
+                                buf_totals[i]);
   }
-  __builtin_memcpy(payload, buf_stats, sizeof(buf_stats));
-  payload += sizeof(buf_stats);
+  // bpf_trace_printk(fmt, sizeof(fmt), sizeof(stats), sizeof(buf_stats));
+  // bpf_trace_printk(fmt, sizeof(fmt), sizeof(stats_state),
+  //                  sizeof(buf_stats_state));
+  // bpf_trace_printk(fmt, sizeof(fmt), sizeof(settings), sizeof(buf_settings));
+  // bpf_trace_printk(fmt, sizeof(fmt), sizeof(rusage), sizeof(buf_rusage));
+  // bpf_trace_printk(fmt, sizeof(fmt), sizeof(thread_stats),
+  //                  sizeof(buf_thread_stats));
+  // bpf_trace_printk(fmt, sizeof(fmt), sizeof(slab_stats),
+  //                  sizeof(buf_slab_stats));
+  // bpf_trace_printk(fmt, sizeof(fmt), sizeof(totals), sizeof(buf_totals));
 
-  if ((void *)payload + sizeof(buf_stats_state) > data_end) {
-    return XDP_PASS;
-  }
-  __builtin_memcpy(payload, buf_stats_state, sizeof(buf_stats_state));
-  payload += sizeof(buf_stats_state);
+  for (int i = 0; i < NUM_APP; i++) {
+    if ((void *)payload + sizeof(stats) > data_end) {
+      return XDP_PASS;
+    }
+    __builtin_memcpy(payload, buf_stats[i], sizeof(stats));
+    payload += sizeof(stats);
 
-  if ((void*)payload + sizeof(buf_settings) > data_end) {
-    return XDP_PASS;
-  }
-  __builtin_memcpy(payload, buf_settings, sizeof(buf_settings));
-  payload += sizeof(buf_settings);
+    if ((void *)payload + sizeof(stats_state) > data_end) {
+      return XDP_PASS;
+    }
+    __builtin_memcpy(payload, buf_stats_state[i], sizeof(stats_state));
+    payload += sizeof(stats_state);
 
-  if ((void *)payload + sizeof(buf_rusage) > data_end) {
-    return XDP_PASS;
-  }
-  __builtin_memcpy(payload, buf_rusage, sizeof(buf_rusage));
-  payload += sizeof(buf_rusage);
+    if ((void *)payload + sizeof(settings) > data_end) {
+      return XDP_PASS;
+    }
+    __builtin_memcpy(payload, buf_settings[i], sizeof(settings));
+    payload += sizeof(settings);
 
-  if ((void *)payload + sizeof(buf_thread_stats) > data_end) {
-    return XDP_PASS;
-  }
-  __builtin_memcpy(payload, buf_thread_stats, sizeof(buf_thread_stats));
-  payload += sizeof(buf_thread_stats);
+    if ((void *)payload + sizeof(rusage) > data_end) {
+      return XDP_PASS;
+    }
+    __builtin_memcpy(payload, buf_rusage[i], sizeof(rusage));
+    payload += sizeof(rusage);
 
-  if ((void *)payload + sizeof(buf_slab_stats) > data_end) {
-    return XDP_PASS;
-  }
-  __builtin_memcpy(payload, buf_slab_stats, sizeof(buf_slab_stats));
-  payload += sizeof(buf_slab_stats);
+    if ((void *)payload + sizeof(thread_stats) > data_end) {
+      return XDP_PASS;
+    }
+    __builtin_memcpy(payload, buf_thread_stats[i], sizeof(thread_stats));
+    payload += sizeof(thread_stats);
 
-  if ((void *)payload + sizeof(buf_totals) > data_end) {
-    return XDP_PASS;
+    if ((void *)payload + sizeof(slab_stats) > data_end) {
+      return XDP_PASS;
+    }
+    __builtin_memcpy(payload, buf_slab_stats[i], sizeof(slab_stats));
+    payload += sizeof(slab_stats);
+
+    if ((void *)payload + sizeof(totals) > data_end) {
+      return XDP_PASS;
+    }
+    __builtin_memcpy(payload, buf_totals[i], sizeof(totals));
+    payload += sizeof(totals);
   }
-  __builtin_memcpy(payload, buf_totals, sizeof(buf_totals));
-  payload += sizeof(buf_totals);
 
   swap_src_dst_mac(eth);
   swap_src_dst_ip(ip);
