@@ -5,15 +5,11 @@
 #include <linux/udp.h>
 #include <netinet/in.h> // needed for "IPPROTO_UDP and htons"
 #include <stdint.h>
-// #include <linux/in.h> // needed for "IPPROTO_UDP"
 #include "memcached_metrics.h"
 
 #define ETH_ALEN 6
-// #define METRICS_SIZE 740
 #define PORT_NUM 22222
 #define NUM_APP 2
-// #define __BPF_STACK_LIMIT__ 4096
-// #define MAX_BPF_STACK 4096
 
 #define STATS_OFFSET 0x0
 #define STATS_STATE_OFFSET 0xe0
@@ -95,6 +91,13 @@ int monitor(struct xdp_md *ctx) {
   __builtin_memset(buf_thread_stats, 'd', sizeof(buf_thread_stats));
   __builtin_memset(buf_slab_stats, 'e', sizeof(buf_slab_stats));
   __builtin_memset(buf_totals, 'f', sizeof(buf_totals));
+  // __builtin_memset(buf_stats, 'a', 10);
+  // __builtin_memset(buf_stats_state, 'b', 10);
+  // __builtin_memset(buf_settings, 'c', 10);
+  // __builtin_memset(buf_rusage, 'd', 10);
+  // __builtin_memset(buf_thread_stats, 'd', 10);
+  // __builtin_memset(buf_slab_stats, 'e', 10);
+  // __builtin_memset(buf_totals, 'f', 10);
 
   for (int i = 0; i < NUM_APP; i++) {
     bpf_get_application_metrics(port_array[i], STATS_OFFSET, sizeof(stats),
