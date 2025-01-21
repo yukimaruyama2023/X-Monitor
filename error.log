@@ -1,8 +1,0 @@
-In file included from xdp_user_monitoring_kern.c:8:
-./memcached_metrics.h:16:9: warning: '__SIZEOF_PTHREAD_MUTEX_T' macro redefined [-Wmacro-redefined]
-   16 | #define __SIZEOF_PTHREAD_MUTEX_T 40
-      |         ^
-/usr/include/bits/pthreadtypes-arch.h:36:10: note: previous definition is here
-   36 | # define __SIZEOF_PTHREAD_MUTEX_T 24
-      |          ^
-1 warning generated.
