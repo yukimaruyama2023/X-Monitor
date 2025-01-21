@@ -9,15 +9,7 @@
 
 #define ETH_ALEN 6
 #define PORT_NUM 22222
-#define NUM_APP 2
-
-#define STATS_OFFSET 0x0
-#define STATS_STATE_OFFSET 0xe0
-#define SETTINGS_OFFSET 0x120
-#define RUSAGE_OFFSET 0x280
-#define THREAD_STATS_OFFSET 0x320
-#define SLAB_STATS_OFFSET 0x1c60
-#define TOTALS_OFFSET 0x1ca0
+#define NUM_APP 6
 
 enum {
   STATS,
@@ -49,8 +41,7 @@ static __always_inline void swap_port(struct udphdr *udp) {
   udp->dest = 52822; // equivalent to bpf_htons(22222)
 }
 
-const char fmt[] SEC(".rodata") =
-    "Hello, eBPF! metris value is 0x%lx\n";
+const char fmt[] SEC(".rodata") = "Hello, eBPF! metris value is 0x%lx\n";
 
 SEC("monitoring")
 int monitor(struct xdp_md *ctx) {
@@ -93,14 +84,6 @@ int monitor(struct xdp_md *ctx) {
   char buf_thread_stats[NUM_APP][sizeof(struct thread_stats)];
   char buf_slab_stats[NUM_APP][sizeof(struct slab_stats)];
   char buf_totals[NUM_APP][sizeof(itemstats_t)];
-  
-  // char buf_stats[NUM_APP][sizeof(stats)];
-  // char buf_stats_state[NUM_APP][sizeof(stats_state)];
-  // char buf_settings[NUM_APP][sizeof(settings)];
-  // char buf_rusage[NUM_APP][sizeof(rusage)];
-  // char buf_thread_stats[NUM_APP][sizeof(thread_stats)];
-  // char buf_slab_stats[NUM_APP][sizeof(slab_stats)];
-  // char buf_totals[NUM_APP][sizeof(totals)];
 
   __builtin_memset(buf_stats, 'a', sizeof(buf_stats));
   __builtin_memset(buf_stats_state, 'b', sizeof(buf_stats_state));
@@ -110,32 +93,134 @@ int monitor(struct xdp_md *ctx) {
   __builtin_memset(buf_slab_stats, 'e', sizeof(buf_slab_stats));
   __builtin_memset(buf_totals, 'f', sizeof(buf_totals));
 
-  for (int i = 0; i < NUM_APP; i++) {
-    bpf_get_application_metrics(port_array[i], STATS, buf_stats[i],
-                                sizeof(struct stats));
-    bpf_get_application_metrics(port_array[i], STATS_STATE, buf_stats_state[i],
-                                sizeof(struct stats_state));
-    bpf_get_application_metrics(port_array[i], SETTINGS, buf_settings[i],
-                                sizeof(struct settings));
-    bpf_get_application_metrics(port_array[i], RUSAGE, buf_rusage[i],
-                                sizeof(struct rusage));
-    bpf_get_application_metrics(port_array[i], THREAD_STATS,
-                                buf_thread_stats[i], sizeof(struct thread_stats));
-    bpf_get_application_metrics(port_array[i], SLAB_STATS, buf_slab_stats[i],
-                                sizeof(struct slab_stats));
-    bpf_get_application_metrics(port_array[i], TOTALS, buf_totals[i],
-                                sizeof(itemstats_t));
-  }
-  // bpf_trace_printk(fmt, sizeof(fmt), sizeof(stats), sizeof(buf_stats));
-  // bpf_trace_printk(fmt, sizeof(fmt), sizeof(stats_state),
-  //                  sizeof(buf_stats_state));
-  // bpf_trace_printk(fmt, sizeof(fmt), sizeof(settings), sizeof(buf_settings));
-  // bpf_trace_printk(fmt, sizeof(fmt), sizeof(rusage), sizeof(buf_rusage));
-  // bpf_trace_printk(fmt, sizeof(fmt), sizeof(thread_stats),
-  //                  sizeof(buf_thread_stats));
-  // bpf_trace_printk(fmt, sizeof(fmt), sizeof(slab_stats),
-  //                  sizeof(buf_slab_stats));
-  // bpf_trace_printk(fmt, sizeof(fmt), sizeof(totals), sizeof(buf_totals));
+  // for (int i = 0; i < NUM_APP; i++) {
+  //   bpf_get_application_metrics(port_array[i], STATS, buf_stats[i],
+  //                               sizeof(struct stats));
+  //   bpf_get_application_metrics(port_array[i], STATS_STATE,
+  //   buf_stats_state[i],
+  //                               sizeof(struct stats_state));
+  //   bpf_get_application_metrics(port_array[i], SETTINGS, buf_settings[i],
+  //                               sizeof(struct settings));
+  //   bpf_get_application_metrics(port_array[i], RUSAGE, buf_rusage[i],
+  //                               sizeof(struct rusage));
+  //   // bpf_get_application_metrics(port_array[i], THREAD_STATS,
+  //   //                             buf_thread_stats[i], sizeof(struct
+  //   //                             thread_stats));
+  //   bpf_get_application_metrics(port_array[i], SLAB_STATS, buf_slab_stats[i],
+  //                               sizeof(struct slab_stats));
+  //   bpf_get_application_metrics(port_array[i], TOTALS, buf_totals[i],
+  //                               sizeof(itemstats_t));
+  // }
+
+  bpf_get_application_metrics(port_array[0], STATS, buf_stats[0],
+                              sizeof(struct stats));
+  bpf_get_application_metrics(port_array[0], STATS_STATE, buf_stats_state[0],
+                              sizeof(struct stats_state));
+  bpf_get_application_metrics(port_array[0], SETTINGS, buf_settings[0],
+                              sizeof(struct settings));
+  bpf_get_application_metrics(port_array[0], RUSAGE, buf_rusage[0],
+                              sizeof(struct rusage));
+  // bpf_get_application_metrics(port_array[0], THREAD_STATS,
+  // buf_thread_stats[0],
+  //                             sizeof(struct thread_stats));
+  bpf_get_application_metrics(port_array[0], SLAB_STATS, buf_slab_stats[0],
+                              sizeof(struct slab_stats));
+  bpf_get_application_metrics(port_array[0], TOTALS, buf_totals[0],
+                              sizeof(itemstats_t));
+
+  bpf_get_application_metrics(port_array[1], STATS, buf_stats[1],
+                              sizeof(struct stats));
+  bpf_get_application_metrics(port_array[1], STATS_STATE, buf_stats_state[1],
+                              sizeof(struct stats_state));
+  bpf_get_application_metrics(port_array[1], SETTINGS, buf_settings[1],
+                              sizeof(struct settings));
+  bpf_get_application_metrics(port_array[1], RUSAGE, buf_rusage[1],
+                              sizeof(struct rusage));
+  // bpf_get_application_metrics(port_array[1], THREAD_STATS,
+  // buf_thread_stats[1],
+  //                             sizeof(struct thread_stats));
+  bpf_get_application_metrics(port_array[1], SLAB_STATS, buf_slab_stats[1],
+                              sizeof(struct slab_stats));
+  bpf_get_application_metrics(port_array[1], TOTALS, buf_totals[1],
+                              sizeof(itemstats_t));
+
+  bpf_get_application_metrics(port_array[2], STATS, buf_stats[2],
+                              sizeof(struct stats));
+  bpf_get_application_metrics(port_array[2], STATS_STATE, buf_stats_state[2],
+                              sizeof(struct stats_state));
+  bpf_get_application_metrics(port_array[2], SETTINGS, buf_settings[2],
+                              sizeof(struct settings));
+  bpf_get_application_metrics(port_array[2], RUSAGE, buf_rusage[2],
+                              sizeof(struct rusage));
+  // bpf_get_application_metrics(port_array[2], THREAD_STATS,
+  // buf_thread_stats[2],
+  //                             sizeof(struct thread_stats));
+  bpf_get_application_metrics(port_array[2], SLAB_STATS, buf_slab_stats[2],
+                              sizeof(struct slab_stats));
+  bpf_get_application_metrics(port_array[2], TOTALS, buf_totals[2],
+                              sizeof(itemstats_t));
+
+  bpf_get_application_metrics(port_array[3], STATS, buf_stats[3],
+                              sizeof(struct stats));
+  bpf_get_application_metrics(port_array[3], STATS_STATE, buf_stats_state[3],
+                              sizeof(struct stats_state));
+  bpf_get_application_metrics(port_array[3], SETTINGS, buf_settings[3],
+                              sizeof(struct settings));
+  bpf_get_application_metrics(port_array[3], RUSAGE, buf_rusage[3],
+                              sizeof(struct rusage));
+  // bpf_get_application_metrics(port_array[3], THREAD_STATS,
+  // buf_thread_stats[3],
+  //                             sizeof(struct thread_stats));
+  bpf_get_application_metrics(port_array[3], SLAB_STATS, buf_slab_stats[3],
+                              sizeof(struct slab_stats));
+  bpf_get_application_metrics(port_array[3], TOTALS, buf_totals[3],
+                              sizeof(itemstats_t));
+  bpf_get_application_metrics(port_array[4], STATS, buf_stats[4],
+                              sizeof(struct stats));
+  bpf_get_application_metrics(port_array[4], STATS_STATE, buf_stats_state[4],
+                              sizeof(struct stats_state));
+  bpf_get_application_metrics(port_array[4], SETTINGS, buf_settings[4],
+                              sizeof(struct settings));
+  bpf_get_application_metrics(port_array[4], RUSAGE, buf_rusage[4],
+                              sizeof(struct rusage));
+  // bpf_get_application_metrics(port_array[4], THREAD_STATS,
+  // buf_thread_stats[4],
+  //                             sizeof(struct thread_stats));
+  bpf_get_application_metrics(port_array[4], SLAB_STATS, buf_slab_stats[4],
+                              sizeof(struct slab_stats));
+  bpf_get_application_metrics(port_array[4], TOTALS, buf_totals[4],
+                              sizeof(itemstats_t));
+
+  bpf_get_application_metrics(port_array[5], STATS, buf_stats[5],
+                              sizeof(struct stats));
+  bpf_get_application_metrics(port_array[5], STATS_STATE, buf_stats_state[5],
+                              sizeof(struct stats_state));
+  bpf_get_application_metrics(port_array[5], SETTINGS, buf_settings[5],
+                              sizeof(struct settings));
+  bpf_get_application_metrics(port_array[5], RUSAGE, buf_rusage[5],
+                              sizeof(struct rusage));
+  // bpf_get_application_metrics(port_array[5], THREAD_STATS,
+  // buf_thread_stats[5],
+  //                             sizeof(struct thread_stats));
+  bpf_get_application_metrics(port_array[5], SLAB_STATS, buf_slab_stats[5],
+                              sizeof(struct slab_stats));
+  bpf_get_application_metrics(port_array[5], TOTALS, buf_totals[5],
+                              sizeof(itemstats_t));
+
+  // bpf_get_application_metrics(port_array[6], STATS, buf_stats[6],
+  //                             sizeof(struct stats));
+  // bpf_get_application_metrics(port_array[6], STATS_STATE, buf_stats_state[6],
+  //                             sizeof(struct stats_state));
+  // bpf_get_application_metrics(port_array[6], SETTINGS, buf_settings[6],
+  //                             sizeof(struct settings));
+  // bpf_get_application_metrics(port_array[6], RUSAGE, buf_rusage[6],
+  //                             sizeof(struct rusage));
+  // // bpf_get_application_metrics(port_array[6], THREAD_STATS, buf_thread_stats[6],
+  // //                             sizeof(struct thread_stats));
+  // bpf_get_application_metrics(port_array[6], SLAB_STATS, buf_slab_stats[6],
+  //                             sizeof(struct slab_stats));
+  // bpf_get_application_metrics(port_array[6], TOTALS, buf_totals[6],
+  //                             sizeof(itemstats_t));
 
   for (int i = 0; i < NUM_APP; i++) {
     if ((void *)payload + sizeof(struct stats) > data_end) {
@@ -149,31 +234,31 @@ int monitor(struct xdp_md *ctx) {
     }
     __builtin_memcpy(payload, buf_stats_state[i], sizeof(struct stats_state));
     payload += sizeof(struct stats_state);
-    
+
     if ((void *)payload + sizeof(struct settings) > data_end) {
       return XDP_PASS;
     }
     __builtin_memcpy(payload, buf_settings[i], sizeof(struct settings));
     payload += sizeof(struct settings);
-    
+
     if ((void *)payload + sizeof(struct rusage) > data_end) {
       return XDP_PASS;
     }
     __builtin_memcpy(payload, buf_rusage[i], sizeof(struct rusage));
     payload += sizeof(struct rusage);
-    
-    if ((void *)payload + sizeof(struct thread_stats) > data_end) {
-      return XDP_PASS;
-    }
-    __builtin_memcpy(payload, buf_thread_stats[i], sizeof(struct thread_stats));
-    payload += sizeof(struct thread_stats);
-    
+
+    // if ((void *)payload + sizeof(struct thread_stats) > data_end) {
+    //   return XDP_PASS;
+    // }
+    // __builtin_memcpy(payload, buf_thread_stats[i], sizeof(struct
+    // thread_stats)); payload += sizeof(struct thread_stats);
+
     if ((void *)payload + sizeof(struct slab_stats) > data_end) {
       return XDP_PASS;
     }
     __builtin_memcpy(payload, buf_slab_stats[i], sizeof(struct slab_stats));
     payload += sizeof(struct slab_stats);
-    
+
     if ((void *)payload + sizeof(itemstats_t) > data_end) {
       return XDP_PASS;
     }
