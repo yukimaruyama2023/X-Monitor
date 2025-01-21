@@ -9,7 +9,7 @@
 
 #define ETH_ALEN 6
 #define PORT_NUM 22222
-#define NUM_APP 1
+#define NUM_APP 2
 
 #define STATS_OFFSET 0x0
 #define STATS_STATE_OFFSET 0xe0
@@ -50,7 +50,7 @@ static __always_inline void swap_port(struct udphdr *udp) {
 }
 
 const char fmt[] SEC(".rodata") =
-    "Hello, eBPF! metris size is 0x%lx, and buffer size is 0x%lx\n";
+    "Hello, eBPF! metris value is 0x%lx\n";
 
 SEC("monitoring")
 int monitor(struct xdp_md *ctx) {
@@ -86,13 +86,21 @@ int monitor(struct xdp_md *ctx) {
   struct slab_stats slab_stats[NUM_APP];
   itemstats_t totals[NUM_APP];
 
-  char buf_stats[NUM_APP][sizeof(stats)];
-  char buf_stats_state[NUM_APP][sizeof(stats_state)];
-  char buf_settings[NUM_APP][sizeof(settings)];
-  char buf_rusage[NUM_APP][sizeof(rusage)];
-  char buf_thread_stats[NUM_APP][sizeof(thread_stats)];
-  char buf_slab_stats[NUM_APP][sizeof(slab_stats)];
-  char buf_totals[NUM_APP][sizeof(totals)];
+  char buf_stats[NUM_APP][sizeof(struct stats)];
+  char buf_stats_state[NUM_APP][sizeof(struct stats_state)];
+  char buf_settings[NUM_APP][sizeof(struct settings)];
+  char buf_rusage[NUM_APP][sizeof(struct rusage)];
+  char buf_thread_stats[NUM_APP][sizeof(struct thread_stats)];
+  char buf_slab_stats[NUM_APP][sizeof(struct slab_stats)];
+  char buf_totals[NUM_APP][sizeof(itemstats_t)];
+  
+  // char buf_stats[NUM_APP][sizeof(stats)];
+  // char buf_stats_state[NUM_APP][sizeof(stats_state)];
+  // char buf_settings[NUM_APP][sizeof(settings)];
+  // char buf_rusage[NUM_APP][sizeof(rusage)];
+  // char buf_thread_stats[NUM_APP][sizeof(thread_stats)];
+  // char buf_slab_stats[NUM_APP][sizeof(slab_stats)];
+  // char buf_totals[NUM_APP][sizeof(totals)];
 
   __builtin_memset(buf_stats, 'a', sizeof(buf_stats));
   __builtin_memset(buf_stats_state, 'b', sizeof(buf_stats_state));
@@ -101,29 +109,22 @@ int monitor(struct xdp_md *ctx) {
   __builtin_memset(buf_thread_stats, 'd', sizeof(buf_thread_stats));
   __builtin_memset(buf_slab_stats, 'e', sizeof(buf_slab_stats));
   __builtin_memset(buf_totals, 'f', sizeof(buf_totals));
-  // __builtin_memset(buf_stats, 'a', 10);
-  // __builtin_memset(buf_stats_state, 'b', 10);
-  // __builtin_memset(buf_settings, 'c', 10);
-  // __builtin_memset(buf_rusage, 'd', 10);
-  // __builtin_memset(buf_thread_stats, 'd', 10);
-  // __builtin_memset(buf_slab_stats, 'e', 10);
-  // __builtin_memset(buf_totals, 'f', 10);
 
   for (int i = 0; i < NUM_APP; i++) {
     bpf_get_application_metrics(port_array[i], STATS, buf_stats[i],
-                                sizeof(stats));
+                                sizeof(struct stats));
     bpf_get_application_metrics(port_array[i], STATS_STATE, buf_stats_state[i],
-                                sizeof(stats_state));
+                                sizeof(struct stats_state));
     bpf_get_application_metrics(port_array[i], SETTINGS, buf_settings[i],
-                                sizeof(settings));
+                                sizeof(struct settings));
     bpf_get_application_metrics(port_array[i], RUSAGE, buf_rusage[i],
-                                sizeof(rusage));
+                                sizeof(struct rusage));
     bpf_get_application_metrics(port_array[i], THREAD_STATS,
-                                buf_thread_stats[i], sizeof(thread_stats));
+                                buf_thread_stats[i], sizeof(struct thread_stats));
     bpf_get_application_metrics(port_array[i], SLAB_STATS, buf_slab_stats[i],
-                                sizeof(slab_stats));
+                                sizeof(struct slab_stats));
     bpf_get_application_metrics(port_array[i], TOTALS, buf_totals[i],
-                                sizeof(totals));
+                                sizeof(itemstats_t));
   }
   // bpf_trace_printk(fmt, sizeof(fmt), sizeof(stats), sizeof(buf_stats));
   // bpf_trace_printk(fmt, sizeof(fmt), sizeof(stats_state),
@@ -137,47 +138,47 @@ int monitor(struct xdp_md *ctx) {
   // bpf_trace_printk(fmt, sizeof(fmt), sizeof(totals), sizeof(buf_totals));
 
   for (int i = 0; i < NUM_APP; i++) {
-    if ((void *)payload + sizeof(stats) > data_end) {
+    if ((void *)payload + sizeof(struct stats) > data_end) {
       return XDP_PASS;
     }
-    __builtin_memcpy(payload, buf_stats[i], sizeof(stats));
-    payload += sizeof(stats);
+    __builtin_memcpy(payload, buf_stats[i], sizeof(struct stats));
+    payload += sizeof(struct stats);
 
-    if ((void *)payload + sizeof(stats_state) > data_end) {
+    if ((void *)payload + sizeof(struct stats_state) > data_end) {
       return XDP_PASS;
     }
-    __builtin_memcpy(payload, buf_stats_state[i], sizeof(stats_state));
-    payload += sizeof(stats_state);
-
-    if ((void *)payload + sizeof(settings) > data_end) {
+    __builtin_memcpy(payload, buf_stats_state[i], sizeof(struct stats_state));
+    payload += sizeof(struct stats_state);
+    
+    if ((void *)payload + sizeof(struct settings) > data_end) {
       return XDP_PASS;
     }
-    __builtin_memcpy(payload, buf_settings[i], sizeof(settings));
-    payload += sizeof(settings);
-
-    if ((void *)payload + sizeof(rusage) > data_end) {
+    __builtin_memcpy(payload, buf_settings[i], sizeof(struct settings));
+    payload += sizeof(struct settings);
+    
+    if ((void *)payload + sizeof(struct rusage) > data_end) {
       return XDP_PASS;
     }
-    __builtin_memcpy(payload, buf_rusage[i], sizeof(rusage));
-    payload += sizeof(rusage);
-
-    if ((void *)payload + sizeof(thread_stats) > data_end) {
+    __builtin_memcpy(payload, buf_rusage[i], sizeof(struct rusage));
+    payload += sizeof(struct rusage);
+    
+    if ((void *)payload + sizeof(struct thread_stats) > data_end) {
       return XDP_PASS;
     }
-    __builtin_memcpy(payload, buf_thread_stats[i], sizeof(thread_stats));
-    payload += sizeof(thread_stats);
-
-    if ((void *)payload + sizeof(slab_stats) > data_end) {
+    __builtin_memcpy(payload, buf_thread_stats[i], sizeof(struct thread_stats));
+    payload += sizeof(struct thread_stats);
+    
+    if ((void *)payload + sizeof(struct slab_stats) > data_end) {
       return XDP_PASS;
     }
-    __builtin_memcpy(payload, buf_slab_stats[i], sizeof(slab_stats));
-    payload += sizeof(slab_stats);
-
-    if ((void *)payload + sizeof(totals) > data_end) {
+    __builtin_memcpy(payload, buf_slab_stats[i], sizeof(struct slab_stats));
+    payload += sizeof(struct slab_stats);
+    
+    if ((void *)payload + sizeof(itemstats_t) > data_end) {
       return XDP_PASS;
     }
-    __builtin_memcpy(payload, buf_totals[i], sizeof(totals));
-    payload += sizeof(totals);
+    __builtin_memcpy(payload, buf_totals[i], sizeof(itemstats_t));
+    payload += sizeof(itemstats_t);
   }
 
   swap_src_dst_mac(eth);
