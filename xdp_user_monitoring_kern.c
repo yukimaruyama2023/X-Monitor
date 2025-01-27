@@ -9,7 +9,7 @@
 
 #define ETH_ALEN 6
 #define PORT_NUM 22222
-#define NUM_APP 6
+#define NUM_APP 1
 
 enum {
   STATS,
