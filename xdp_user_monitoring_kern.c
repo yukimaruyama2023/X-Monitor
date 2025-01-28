@@ -7,12 +7,9 @@
 #include <stdint.h>
 #include "memcached_metrics.h"
 
-#define BUF_SIZE 1024
-#define NUM_BUF 10
-
 #define ETH_ALEN 6
 #define PORT_NUM 22222
-#define NUM_APP 9
+#define NUM_APP 10
 
 enum {
   STATS,
@@ -85,34 +82,43 @@ int monitor(struct xdp_md *ctx) {
 
   struct memcached_metrics memcached_metrics[NUM_APP];
 
-  char *ptr_st[NUM_BUF];
-  for (int i = 0; i < NUM_BUF; i++) {
+  char *ptr_st[NUM_APP];
+  for (int i = 0; i < NUM_APP; i++) {
     if (i == 0) {
       ptr_st[i] = (void *)memcached_metrics;
     } else {
-      ptr_st[i] = (void *)((uint64_t)ptr_st[i - 1] + sizeof(struct memcached_metrics));
+      ptr_st[i] =
+          (void *)((uint64_t)ptr_st[i - 1] + sizeof(struct memcached_metrics));
     }
   }
-
+  
   for (int i = 0; i < NUM_APP; i++) {
     __builtin_memset(ptr_st[i], 'a', sizeof(struct memcached_metrics));
   }
 
+
   for (int i = 0; i < NUM_APP; i++) {
-    bpf_get_application_metrics(port_array[i], STATS, (char
-    *)&memcached_metrics[i].stats, sizeof(struct stats));
-    bpf_get_application_metrics(port_array[i], STATS_STATE, (char
-    *)&memcached_metrics[i].stats_state, sizeof(struct stats_state));
-    bpf_get_application_metrics(port_array[i], SETTINGS, (char
-    *)&memcached_metrics[i].settings, sizeof(struct settings));
-    bpf_get_application_metrics(port_array[i], RUSAGE, (char
-    *)&memcached_metrics[i].rusage, sizeof(struct rusage));
-    bpf_get_application_metrics(port_array[i], THREAD_STATS, (char
-    *)&memcached_metrics[i].thread_stats, sizeof(struct thread_stats));
-    bpf_get_application_metrics(port_array[i], SLAB_STATS, (char
-    *)&memcached_metrics[i].slab_stats, sizeof(struct slab_stats));
-    bpf_get_application_metrics(port_array[i], TOTALS, (char
-    *)&memcached_metrics[i].totals, sizeof(itemstats_t));
+    bpf_get_application_metrics(port_array[i], STATS,
+                                (char *)&memcached_metrics[i].stats,
+                                sizeof(struct stats));
+    bpf_get_application_metrics(port_array[i], STATS_STATE,
+                                (char *)&memcached_metrics[i].stats_state,
+                                sizeof(struct stats_state));
+    bpf_get_application_metrics(port_array[i], SETTINGS,
+                                (char *)&memcached_metrics[i].settings,
+                                sizeof(struct settings));
+    bpf_get_application_metrics(port_array[i], RUSAGE,
+                                (char *)&memcached_metrics[i].rusage,
+                                sizeof(struct rusage));
+    bpf_get_application_metrics(port_array[i], THREAD_STATS,
+                                (char *)&memcached_metrics[i].thread_stats,
+                                sizeof(struct thread_stats));
+    bpf_get_application_metrics(port_array[i], SLAB_STATS,
+                                (char *)&memcached_metrics[i].slab_stats,
+                                sizeof(struct slab_stats));
+    bpf_get_application_metrics(port_array[i], TOTALS,
+                                (char *)&memcached_metrics[i].totals,
+                                sizeof(itemstats_t));
   }
 
   for (int i = 0; i < NUM_APP; i++) {
