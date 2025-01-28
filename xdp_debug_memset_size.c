@@ -9,8 +9,9 @@
 
 #define ETH_ALEN 6
 #define PORT_NUM 22222
-#define BUF_SIZE 1024
-#define NUM_BUF 1
+// #define BUF_SIZE 1024
+#define BUF_SIZE 300
+#define NUM_BUF 10
 
 static __always_inline void swap_src_dst_mac(struct ethhdr *eth) {
   __u8 h_tmp[ETH_ALEN];
@@ -58,7 +59,19 @@ int debug_test(struct xdp_md *ctx) {
     return XDP_PASS;
 
   // char buffer[NUM_BUF][BUF_SIZE];
-  //
+
+  struct buf_st {
+    // char buf[BUF_SIZE];
+    struct stats stats;
+    struct stats_state stats_state;
+    struct settings settings;
+    struct rusage rusage;
+    struct thread_stats thread_stats;
+    struct slab_stats slab_stats;
+    itemstats_t totals;
+  };
+  struct buf_st buf_st[NUM_BUF];
+  
   // char *ptr[NUM_BUF];
   // for (int i = 0; i < NUM_BUF; i++) {
   //   if (i == 0) {
@@ -67,11 +80,24 @@ int debug_test(struct xdp_md *ctx) {
   //     ptr[i] = (void *)((uint64_t)ptr[i - 1] + BUF_SIZE);
   //   }
   // }
-  //
+
+  char *ptr_st[NUM_BUF];
+  for (int i = 0; i < NUM_BUF; i++) {
+    if (i == 0) {
+      ptr_st[i] = (void *)buf_st;
+    } else {
+      ptr_st[i] = (void *)((uint64_t)ptr_st[i - 1] + sizeof(struct buf_st));
+    }
+  }
+  
   // for (int i = 0; i < NUM_BUF; i++) {
   //   __builtin_memset(ptr[i], 'x', BUF_SIZE);
   // }
-  //
+
+  for (int i = 0; i < NUM_BUF; i++) {
+    __builtin_memset(ptr_st[i], 'y', sizeof(struct buf_st));
+  }
+  
   // for (int i = 0; i < NUM_BUF; i++) {
   //   if ((void *)payload + sizeof(buffer[i]) > data_end) {
   //     return XDP_PASS;
@@ -79,6 +105,14 @@ int debug_test(struct xdp_md *ctx) {
   //   __builtin_memcpy(payload, buffer[i], sizeof(buffer[i]));
   //   payload += sizeof(buffer[i]);
   // }
+
+  for (int i = 0; i < NUM_BUF; i++) {
+    if ((void *)payload + sizeof(buf_st[i]) > data_end) {
+      return XDP_PASS;
+    }
+    __builtin_memcpy(payload, &buf_st[i], sizeof(buf_st[i]));
+    payload += sizeof(buf_st[i]);
+  }
   
   swap_src_dst_mac(eth);
   swap_src_dst_ip(ip);
