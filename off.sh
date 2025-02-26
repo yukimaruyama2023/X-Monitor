@@ -1,3 +1,3 @@
 #!/bin/sh
 
-sudo ip link set enp2s0f1 xdpdrv off
+sudo ip link set enp13s0f0np0 xdpdrv off
