@@ -3,11 +3,8 @@
 #include <linux/if_ether.h>
 #include <linux/ip.h>
 #include <linux/udp.h>
-#include <netinet/in.h> // needed for "IPPROTO_UDP and htons"
+#include <netinet/in.h> // needed for "IPPROTO_UDP"
 
-#define VLAN_HDR_LEN 4  // (not used since VLAN not expected)
-
-// Inline helper to swap Ethernet MAC addresses
 static __always_inline void swap_src_dst_mac(struct ethhdr *eth) {
     __u8 tmp[ETH_ALEN];
     __builtin_memcpy(tmp, eth->h_source, ETH_ALEN);
@@ -15,57 +12,81 @@ static __always_inline void swap_src_dst_mac(struct ethhdr *eth) {
     __builtin_memcpy(eth->h_dest, tmp, ETH_ALEN);
 }
 
-// Inline helper to swap IPv4 addresses
-static __always_inline void swap_src_dst_ip(struct iphdr *iph) {
-    __be32 tmp = iph->saddr;
-    iph->saddr = iph->daddr;
-    iph->daddr = tmp;
+static __always_inline void swap_src_dst_ip(struct iphdr *ip) {
+    __be32 tmp = ip->saddr;
+    ip->saddr = ip->daddr;
+    ip->daddr = tmp;
 }
 
-// Inline helper to swap UDP port numbers
-static __always_inline void swap_src_dst_udp(struct udphdr *udph) {
-    // __be16 tmp = udph->source;
-    udph->source = udph->dest;
-    udph->dest   = 52822;
+static __always_inline void swap_src_dst_udp(struct udphdr *udp) {
+    __be16 tmp = udp->source;
+    udp->source = udp->dest;
+    udp->dest = tmp;
 }
 
-// XDP program entry (multi-buffer aware)
 SEC("xdp.frags")
 int xdp_udp_echo(struct xdp_md *ctx) {
     void *data     = (void *)(unsigned long)ctx->data;
     void *data_end = (void *)(unsigned long)ctx->data_end;
-    
+
     struct ethhdr eth;
     if (bpf_xdp_load_bytes(ctx, 0, &eth, sizeof(eth)) < 0) {
-        return XDP_DROP;  // ヘッダがフラグメント等で読み込めなければDROP
-    }
-  
-    struct iphdr ip;
-    if (bpf_xdp_load_bytes(ctx, sizeof(eth), &ip, sizeof(ip))) {
         return XDP_DROP;
-    }
-    if (ip.protocol != IPPROTO_UDP) {
-        return XDP_DROP; // Not UDP, drop (no other protocols considered)
     }
 
-    struct udphdr udp;
-    if (bpf_xdp_load_bytes(ctx, sizeof(eth) + sizeof(ip), &udp, sizeof(udp))) {
+    __u64 offset = sizeof(struct ethhdr);
+
+    struct iphdr ip;
+    if (bpf_xdp_load_bytes(ctx, offset, &ip, sizeof(ip)) < 0) {
         return XDP_DROP;
     }
+
+    __u64 ip_header_length = ip.ihl * 4;
+    if (ip_header_length < sizeof(struct iphdr)) {
+        return XDP_DROP;
+    }
+
+    if (ip.protocol != IPPROTO_UDP) {
+        return XDP_DROP;
+    }
+
+    offset += ip_header_length;
+
+    struct udphdr udp;
+    if (bpf_xdp_load_bytes(ctx, offset, &udp, sizeof(udp)) < 0) {
+        return XDP_DROP;
+    }
+
+    bpf_printk("multi-buffer");
+    bpf_printk("Before swap: MAC src=%02x:%02x:%02x:%02x:%02x:%02x -> dst=%02x:%02x:%02x:%02x:%02x:%02x",
+               eth.h_source[0], eth.h_source[1], eth.h_source[2],
+               eth.h_source[3], eth.h_source[4], eth.h_source[5],
+               eth.h_dest[0], eth.h_dest[1], eth.h_dest[2],
+               eth.h_dest[3], eth.h_dest[4], eth.h_dest[5]);
+
+    bpf_printk("Before swap: IP src=%pI4 -> dst=%pI4", &ip.saddr, &ip.daddr);
 
     swap_src_dst_mac(&eth);
     swap_src_dst_ip(&ip);
-    swap_src_dst_udp(&udp);
-    
+    // swap_src_dst_udp(&udp);
     udp.check = 0;
-    if (bpf_xdp_store_bytes(ctx, 0, &eth, sizeof(eth)) < 0 ||
-        bpf_xdp_store_bytes(ctx, sizeof(eth), &ip, sizeof(ip)) < 0 ||
-        bpf_xdp_store_bytes(ctx, sizeof(eth) + sizeof(ip), &udp, sizeof(udp)) < 0) {
-        return XDP_DROP;
-    }
+
+    bpf_printk("After swap : MAC src=%02x:%02x:%02x:%02x:%02x:%02x -> dst=%02x:%02x:%02x:%02x:%02x:%02x",
+               eth.h_source[0], eth.h_source[1], eth.h_source[2],
+               eth.h_source[3], eth.h_source[4], eth.h_source[5],
+               eth.h_dest[0], eth.h_dest[1], eth.h_dest[2],
+               eth.h_dest[3], eth.h_dest[4], eth.h_dest[5]);
+
+    bpf_printk("After swap : IP src=%pI4 -> dst=%pI4", &ip.saddr, &ip.daddr);
+    bpf_printk("");
+
+    bpf_xdp_store_bytes(ctx, 0, &eth, sizeof(eth));
+    bpf_xdp_store_bytes(ctx, sizeof(struct ethhdr) + offsetof(struct iphdr, saddr), &ip.saddr, sizeof(ip.saddr));
+    bpf_xdp_store_bytes(ctx, sizeof(struct ethhdr) + offsetof(struct iphdr, daddr), &ip.daddr, sizeof(ip.daddr));
+    bpf_xdp_store_bytes(ctx, offset + offsetof(struct udphdr, source), &udp.source, sizeof(udp.source));
+    bpf_xdp_store_bytes(ctx, offset + offsetof(struct udphdr, dest), &udp.dest, sizeof(udp.dest));
 
     return XDP_TX;
 }
 
-// License must be specified for BPF programs
 char _license[] SEC("license") = "GPL";
