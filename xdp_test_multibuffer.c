@@ -80,11 +80,9 @@ int xdp_udp_echo(struct xdp_md *ctx) {
     bpf_printk("After swap : IP src=%pI4 -> dst=%pI4", &ip.saddr, &ip.daddr);
     bpf_printk("");
 
-    bpf_xdp_store_bytes(ctx, 0, &eth, sizeof(eth));
-    bpf_xdp_store_bytes(ctx, sizeof(struct ethhdr) + offsetof(struct iphdr, saddr), &ip.saddr, sizeof(ip.saddr));
-    bpf_xdp_store_bytes(ctx, sizeof(struct ethhdr) + offsetof(struct iphdr, daddr), &ip.daddr, sizeof(ip.daddr));
-    bpf_xdp_store_bytes(ctx, offset + offsetof(struct udphdr, source), &udp.source, sizeof(udp.source));
-    bpf_xdp_store_bytes(ctx, offset + offsetof(struct udphdr, dest), &udp.dest, sizeof(udp.dest));
+    bpf_xdp_store_bytes(ctx, 0, &eth, sizeof(struct ethhdr));
+    bpf_xdp_store_bytes(ctx, sizeof(struct ethhdr), &ip, sizeof(struct iphdr));
+    bpf_xdp_store_bytes(ctx, sizeof(struct ethhdr) + sizeof(struct iphdr), &udp, sizeof(struct udphdr));
 
     return XDP_TX;
 }
