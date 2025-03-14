@@ -41,8 +41,6 @@ static __always_inline void swap_port(struct udphdr *udp) {
   udp->dest = 52822; // equivalent to bpf_htons(22222)
 }
 
-const char fmt[] SEC(".rodata") = "Hello, eBPF! metris[0] size is %d\n";
-const char fmt_v2[] SEC(".rodata") = "Hello, eBPF! metris[1] size is %d\n";
 
 SEC("monitoring")
 int monitor(struct xdp_md *ctx) {
@@ -96,7 +94,6 @@ int monitor(struct xdp_md *ctx) {
     __builtin_memset(ptr_st[i], 'a', sizeof(struct memcached_metrics));
   }
 
-
   for (int i = 0; i < NUM_APP; i++) {
     bpf_get_application_metrics(port_array[i], STATS,
                                 (char *)&memcached_metrics[i].stats,
@@ -129,9 +126,6 @@ int monitor(struct xdp_md *ctx) {
                      sizeof(memcached_metrics[i]));
     payload += sizeof(memcached_metrics[i]);
   }
-
-  // bpf_trace_printk(fmt, sizeof(fmt), sizeof(memcached_metrics[0]));
-  // bpf_trace_printk(fmt_v2, sizeof(fmt_v2), sizeof(memcached_metrics[1]));
 
   swap_src_dst_mac(eth);
   swap_src_dst_ip(ip);

@@ -31,7 +31,7 @@ static __always_inline void swap_port(struct udphdr *udp)
     udp->dest = 52822; // equivalent to bpf_htons(22222) 
 }
 
-SEC("monitoring")
+SEC("xdp.frags")
 int udp(struct xdp_md *ctx)
 {
     void *data_end = (void *)(long)ctx->data_end; 
@@ -59,9 +59,26 @@ int udp(struct xdp_md *ctx)
         payload += sizeof(long);
     }
 
+    bpf_printk("cpu_monitoring");
+    bpf_printk("Before swap : MAC src=%02x:%02x:%02x:%02x:%02x:%02x -> dst=%02x:%02x:%02x:%02x:%02x:%02x",
+               eth->h_source[0], eth->h_source[1], eth->h_source[2],
+               eth->h_source[3], eth->h_source[4], eth->h_source[5],
+               eth->h_dest[0], eth->h_dest[1], eth->h_dest[2],
+               eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
+    bpf_printk("Before swap : IP src=%pI4 -> dst=%pI4", &ip->saddr, &ip->daddr);
+
+
     swap_src_dst_mac(eth);
     swap_src_dst_ip(ip);
-    swap_port(udp);
+    // swap_port(udp);
+
+    bpf_printk("After swap  : MAC src=%02x:%02x:%02x:%02x:%02x:%02x -> dst=%02x:%02x:%02x:%02x:%02x:%02x",
+               eth->h_source[0], eth->h_source[1], eth->h_source[2],
+               eth->h_source[3], eth->h_source[4], eth->h_source[5],
+               eth->h_dest[0], eth->h_dest[1], eth->h_dest[2],
+               eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
+    bpf_printk("After swap  : IP src=%pI4 -> dst=%pI4", &ip->saddr, &ip->daddr);
+    bpf_printk("");
 
     udp->check = 0;
 
