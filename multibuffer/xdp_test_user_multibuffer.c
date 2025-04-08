@@ -6,8 +6,7 @@
 #include <netinet/in.h> // needed for "IPPROTO_UDP"
 #include "memcached_metrics.h"
 
-// #define BUFFER_SIZE 8
-#define NUM_APP 10 
+#define NUM_APP 2 
 
 struct memcached_metrics {
   struct stats stats;
@@ -98,6 +97,7 @@ int xdp_udp_echo(struct xdp_md *ctx) {
 
     struct memcached_metrics memcached_metrics[NUM_APP];
 
+    bpf_printk("Before xdp_test_user_multibuffer.c\n"); 
     for (int i = 0; i < NUM_APP; i++) {
       bpf_get_application_metrics(port_array[i], STATS,
                                   (char *)&memcached_metrics[i].stats,
@@ -117,9 +117,9 @@ int xdp_udp_echo(struct xdp_md *ctx) {
       bpf_get_application_metrics(port_array[i], SLAB_STATS,
                                   (char *)&memcached_metrics[i].slab_stats,
                                   sizeof(struct slab_stats));
-      bpf_get_application_metrics(port_array[i], TOTALS,
-                                  (char *)&memcached_metrics[i].totals,
-                                  sizeof(itemstats_t));
+      // bpf_get_application_metrics(port_array[i], TOTALS,
+      //                             (char *)&memcached_metrics[i].totals,
+      //                             sizeof(itemstats_t));
     }
     
     for (int i = 0; i < NUM_APP; i++) {
@@ -153,11 +153,11 @@ int xdp_udp_echo(struct xdp_md *ctx) {
       }
       bpf_xdp_store_bytes(ctx, payload_offset, &memcached_metrics[i].slab_stats, sizeof(struct slab_stats));
       payload_offset += sizeof(struct slab_stats);
-      if ((void *)payload_offset + sizeof(itemstats_t) > data_end) {
-        return XDP_PASS;
-      }
-      bpf_xdp_store_bytes(ctx, payload_offset, &memcached_metrics[i].totals, sizeof(itemstats_t));
-      payload_offset += sizeof(itemstats_t);
+      // if ((void *)payload_offset + sizeof(itemstats_t) > data_end) {
+      //   return XDP_PASS;
+      // }
+      // bpf_xdp_store_bytes(ctx, payload_offset, &memcached_metrics[i].totals, sizeof(itemstats_t));
+      // payload_offset += sizeof(itemstats_t);
     }
 
     return XDP_TX;
