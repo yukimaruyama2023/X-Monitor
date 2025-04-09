@@ -117,9 +117,9 @@ int xdp_udp_echo(struct xdp_md *ctx) {
       bpf_get_application_metrics(port_array[i], SLAB_STATS,
                                   (char *)&memcached_metrics[i].slab_stats,
                                   sizeof(struct slab_stats));
-      // bpf_get_application_metrics(port_array[i], TOTALS,
-      //                             (char *)&memcached_metrics[i].totals,
-      //                             sizeof(itemstats_t));
+      bpf_get_application_metrics(port_array[i], TOTALS,
+                                  (char *)&memcached_metrics[i].totals,
+                                  sizeof(itemstats_t));
     }
     
     for (int i = 0; i < NUM_APP; i++) {
@@ -153,11 +153,11 @@ int xdp_udp_echo(struct xdp_md *ctx) {
       }
       bpf_xdp_store_bytes(ctx, payload_offset, &memcached_metrics[i].slab_stats, sizeof(struct slab_stats));
       payload_offset += sizeof(struct slab_stats);
-      // if ((void *)payload_offset + sizeof(itemstats_t) > data_end) {
-      //   return XDP_PASS;
-      // }
-      // bpf_xdp_store_bytes(ctx, payload_offset, &memcached_metrics[i].totals, sizeof(itemstats_t));
-      // payload_offset += sizeof(itemstats_t);
+      if ((void *)payload_offset + sizeof(itemstats_t) > data_end) {
+        return XDP_PASS;
+      }
+      bpf_xdp_store_bytes(ctx, payload_offset, &memcached_metrics[i].totals, sizeof(itemstats_t));
+      payload_offset += sizeof(itemstats_t);
     }
 
     return XDP_TX;
