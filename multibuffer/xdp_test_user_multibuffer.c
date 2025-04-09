@@ -42,8 +42,8 @@ static __always_inline void swap_src_dst_ip(struct iphdr *ip) {
 }
 
 static __always_inline void swap_src_dst_udp(struct udphdr *udp) {
-    udp->source = udp->dest;
-    udp->dest = 52822;
+    udp->source = 53078; // 22223
+    udp->dest = 52822;  // 22222
 }
 
 SEC("xdp.frags")
