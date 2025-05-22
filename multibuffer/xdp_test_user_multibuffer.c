@@ -6,7 +6,7 @@
 #include <netinet/in.h> // needed for "IPPROTO_UDP"
 #include "memcached_metrics.h"
 
-#define NUM_APP 2 
+#define NUM_APP 10
 
 struct memcached_metrics {
   struct stats stats;
@@ -122,6 +122,11 @@ int xdp_udp_echo(struct xdp_md *ctx) {
                                   sizeof(itemstats_t));
     }
     
+    bpf_printk("Value of stats.total_items is 0x%lx\n", memcached_metrics[0].stats.total_items);
+    bpf_printk("Value of slab_stats.set_cmds is 0x%lx\n", memcached_metrics[0].slab_stats.set_cmds);
+    bpf_printk("Value of totals.evicted is 0x%lx\n", memcached_metrics[0].totals.evicted);
+    bpf_printk("Value of totals.relcaimed is 0x%lx\n", memcached_metrics[0].totals.reclaimed);
+
     for (int i = 0; i < NUM_APP; i++) {
       if ((void *)payload_offset + sizeof(struct stats) > data_end) {
         return XDP_PASS;
