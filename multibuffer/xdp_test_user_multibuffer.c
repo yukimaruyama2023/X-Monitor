@@ -48,6 +48,8 @@ static __always_inline void swap_src_dst_udp(struct udphdr *udp) {
 
 SEC("xdp.frags")
 int xdp_udp_echo(struct xdp_md *ctx) {
+    __u64 start, end, elapsed_cycles;
+    bpf_rdtsc((long *)&start);
     void *data     = (void *)(unsigned long)ctx->data;
     void *data_end = (void *)(unsigned long)ctx->data_end;
 
@@ -97,7 +99,6 @@ int xdp_udp_echo(struct xdp_md *ctx) {
 
     struct memcached_metrics memcached_metrics[NUM_APP];
 
-    bpf_printk("Before xdp_test_user_multibuffer.c\n"); 
     for (int i = 0; i < NUM_APP; i++) {
       bpf_get_application_metrics(port_array[i], STATS,
                                   (char *)&memcached_metrics[i].stats,
@@ -122,11 +123,6 @@ int xdp_udp_echo(struct xdp_md *ctx) {
                                   sizeof(itemstats_t));
     }
     
-    bpf_printk("Value of stats.total_items is 0x%lx\n", memcached_metrics[0].stats.total_items);
-    bpf_printk("Value of slab_stats.set_cmds is 0x%lx\n", memcached_metrics[0].slab_stats.set_cmds);
-    bpf_printk("Value of totals.evicted is 0x%lx\n", memcached_metrics[0].totals.evicted);
-    bpf_printk("Value of totals.relcaimed is 0x%lx\n", memcached_metrics[0].totals.reclaimed);
-
     for (int i = 0; i < NUM_APP; i++) {
       if ((void *)payload_offset + sizeof(struct stats) > data_end) {
         return XDP_PASS;
@@ -164,6 +160,9 @@ int xdp_udp_echo(struct xdp_md *ctx) {
       bpf_xdp_store_bytes(ctx, payload_offset, &memcached_metrics[i].totals, sizeof(itemstats_t));
       payload_offset += sizeof(itemstats_t);
     }
+    bpf_rdtsc((long *)&end);
+    elapsed_cycles = end - start;
+    bpf_printk("Elapsed cycles are %ld", elapsed_cycles);
 
     return XDP_TX;
 }
