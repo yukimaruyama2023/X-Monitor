@@ -86,6 +86,8 @@ int xdp_udp_echo(struct xdp_md *ctx) {
     swap_src_dst_udp(&udp);
     udp.check = 0;
 
+    // bpf_xdp_adjust_tail(ctx, 7000);
+
     bpf_xdp_store_bytes(ctx, 0, &eth, sizeof(struct ethhdr));
     bpf_xdp_store_bytes(ctx, sizeof(struct ethhdr), &ip, sizeof(struct iphdr));
     bpf_xdp_store_bytes(ctx, sizeof(struct ethhdr) + sizeof(struct iphdr), &udp, sizeof(struct udphdr));
